@@ -46,6 +46,9 @@ COPY --chown=appuser:appuser src/ ./src/
 # Install dependencies (creates uv.lock if it doesn't exist)
 RUN uv sync --all-groups
 
+# Copy tests explicitly (excluded by .dockerignore for prod, but needed for dev/CI)
+COPY --chown=appuser:appuser tests/ ./tests/
+
 # Copy remaining application code (as appuser)
 COPY --chown=appuser:appuser . .
 
