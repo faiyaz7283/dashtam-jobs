@@ -2,6 +2,7 @@
 
 > Centralized background jobs service for Dashtam
 
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://faiyaz7283.github.io/dashtam-jobs/)
 [![Test Suite](https://github.com/faiyaz7283/dashtam-jobs/workflows/Test%20Suite/badge.svg)](https://github.com/faiyaz7283/dashtam-jobs/actions)
 [![codecov](https://codecov.io/gh/faiyaz7283/dashtam-jobs/branch/development/graph/badge.svg)](https://codecov.io/gh/faiyaz7283/dashtam-jobs)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/downloads/)
