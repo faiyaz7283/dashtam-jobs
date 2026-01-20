@@ -1,0 +1,13 @@
+{
+  "config": {
+    "extends": ".markdownlint.jsonc"
+  },
+  "ignores": [
+    "node_modules",
+    ".venv",
+    "venv",
+    "site",
+    "htmlcov",
+    "CHANGELOG.md"
+  ]
+}

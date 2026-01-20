@@ -1,0 +1,86 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - development  # Deploy docs from development branch
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+# Set permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git info
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen --group docs
+
+      - name: Build documentation
+        run: |
+          # Build docs and capture all output
+          uv run mkdocs build --strict --verbose 2>&1 | tee build.log || true
+
+          # Check for warnings OTHER than griffe/autorefs (which are false positives)
+          if grep -E "WARNING" build.log | grep -v "griffe:" | grep -v "mkdocs_autorefs:" | grep -q .; then
+            echo "❌ Found warnings other than griffe/autorefs"
+            grep -E "WARNING" build.log | grep -v "griffe:" | grep -v "mkdocs_autorefs:"
+            exit 1
+          fi
+
+          # Verify site/ was actually built
+          if [ ! -d "site" ]; then
+            echo "❌ Documentation build failed - site/ directory not created"
+            exit 1
+          fi
+
+          echo "✅ Documentation built successfully"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
