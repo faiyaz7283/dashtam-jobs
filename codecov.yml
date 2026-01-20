@@ -1,0 +1,108 @@
+# Codecov Configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+# Coverage configuration
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"  # Yellow at 70%, green at 100%
+
+  status:
+    # Project-level coverage checks
+    project:
+      default:
+        target: 80%  # Minimum acceptable coverage (building up from 62%)
+        threshold: 2%  # Allow 2% drop before failing
+        base: auto
+        if_ci_failed: error
+        informational: false
+
+    # Patch-level coverage checks (for new code in PRs)
+    patch:
+      default:
+        target: 85%  # New code should have high coverage
+        threshold: 5%
+        base: auto
+        if_ci_failed: error
+        informational: false
+
+    # Individual file-level changes
+    changes:
+      default:
+        base: auto
+        if_ci_failed: error
+
+# Comment configuration for pull requests
+comment:
+  layout: "header, diff, components, tree"
+  behavior: default  # Update existing comment
+  require_changes: false  # Always comment
+  require_base: false
+  require_head: true
+  branches:
+    - development
+    - main
+
+# Ignore patterns
+ignore:
+  - "tests/**/*"
+  - "docs/**/*"
+  - "**/__init__.py"
+  - "**/conftest.py"
+
+# Component-based coverage
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 80%
+      - type: patch
+        target: 85%
+
+  individual_components:
+    - component_id: tasks
+      name: Background Tasks
+      paths:
+        - src/dashtam_jobs/tasks/**
+
+    - component_id: infrastructure
+      name: Infrastructure
+      paths:
+        - src/dashtam_jobs/infrastructure/**
+
+    - component_id: core
+      name: Core
+      paths:
+        - src/dashtam_jobs/core/**
+
+    - component_id: middlewares
+      name: Middlewares
+      paths:
+        - src/dashtam_jobs/middlewares/**
+
+# GitHub integration settings
+github_checks:
+  annotations: true
+
+# Codecov CLI settings
+cli:
+  runners:
+    retry_count: 3
+    retry_delay: 2
+
+# Flag management for different test types
+flags:
+  main-tests:
+    paths:
+      - src/
+    carryforward: true
+
+  unit:
+    paths:
+      - src/
+    carryforward: true
+
+  integration:
+    paths:
+      - src/
+    carryforward: true

@@ -69,18 +69,33 @@ def mock_database() -> MagicMock:
 
 
 @pytest.fixture
-def mock_context(mock_database: MagicMock) -> MagicMock:
+def mock_sse_publisher() -> MagicMock:
+    """Provide a mock SSE publisher instance.
+
+    Returns:
+        MagicMock configured with async publish methods.
+    """
+    mock_publisher = MagicMock()
+    mock_publisher.publish_to_user = AsyncMock(return_value=1)
+    mock_publisher.broadcast = AsyncMock(return_value=1)
+    return mock_publisher
+
+
+@pytest.fixture
+def mock_context(mock_database: MagicMock, mock_sse_publisher: MagicMock) -> MagicMock:
     """Provide a mock TaskIQ context with state.
 
     Args:
         mock_database: Mock database fixture.
+        mock_sse_publisher: Mock SSE publisher fixture.
 
     Returns:
-        MagicMock configured as TaskIQ Context with state.database.
+        MagicMock configured as TaskIQ Context with state.database and state.sse_publisher.
     """
     context = MagicMock()
     context.state = MagicMock()
     context.state.database = mock_database
+    context.state.sse_publisher = mock_sse_publisher
     return context
 
 
