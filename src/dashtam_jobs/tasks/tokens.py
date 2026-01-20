@@ -65,10 +65,11 @@ async def check_expiring_tokens(
         expiring = await repo.find_expiring_soon(hours=threshold_hours)
         total_active = await repo.count_active()
 
-        # Emit events for each expiring connection
-        # Note: Event bus integration will be added in Phase 6 (API Integration)
-        # For now, we log the events that would be published
+        # Publish SSE events for each expiring connection
+        # Events are delivered to clients via Redis pub/sub
+        sse_publisher = context.state.sse_publisher
         notified = 0
+
         for conn in expiring:
             event = ProviderTokenExpiringSoon(
                 connection_id=conn.id,
@@ -77,8 +78,16 @@ async def check_expiring_tokens(
                 expires_at=conn.credentials_expires_at,
             )
 
-            # TODO: Phase 6 - Publish via event bus for SSE delivery
-            # await context.state.event_bus.publish(event)
+            # Publish SSE event to user's channel
+            await sse_publisher.publish_to_user(
+                user_id=event.user_id,
+                event_type="provider.token.expiring",
+                data={
+                    "connection_id": str(event.connection_id),
+                    "provider_slug": event.provider_slug,
+                    "expires_at": event.expires_at.isoformat(),
+                },
+            )
 
             logger.info(
                 "token_expiring_soon",

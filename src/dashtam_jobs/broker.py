@@ -48,10 +48,18 @@ async def startup(state: TaskiqState) -> None:
     logger.info("worker_startup")
 
     # Import here to avoid circular imports and allow lazy loading
+    from redis.asyncio import Redis
+
     from dashtam_jobs.infrastructure.database import Database
+    from dashtam_jobs.infrastructure.sse_publisher import SSEPublisher
 
     # Database instance (manages engine and sessions)
     state.database = Database(_settings.database_url)
+
+    # SSE publisher for sending notifications to API clients
+    # Uses the same Redis that the API uses for SSE pub/sub
+    state.sse_redis = Redis.from_url(_settings.redis_url)
+    state.sse_publisher = SSEPublisher(state.sse_redis)
 
     logger.info(
         "worker_startup_complete",
@@ -72,5 +80,10 @@ async def shutdown(state: TaskiqState) -> None:
     if hasattr(state, "database") and state.database is not None:
         await state.database.close()
         logger.info("worker_database_closed")
+
+    # Close SSE publisher Redis connection
+    if hasattr(state, "sse_publisher") and state.sse_publisher is not None:
+        await state.sse_publisher.close()
+        logger.info("worker_sse_publisher_closed")
 
     logger.info("worker_shutdown_complete")

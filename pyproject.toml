@@ -12,6 +12,7 @@ dependencies = [
     "structlog>=25.5.0",
     "taskiq>=0.12.1",
     "taskiq-redis>=1.2.1",
+    "uuid7>=0.1.0",
 ]
 
 [dependency-groups]
@@ -67,6 +68,7 @@ module = [
     "sqlalchemy.*",
     "asyncpg.*",
     "structlog.*",
+    "uuid_extensions",
 ]
 ignore_missing_imports = true
 

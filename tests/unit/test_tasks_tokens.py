@@ -70,12 +70,16 @@ async def test_check_expiring_tokens_uses_threshold_from_settings(
 @pytest.mark.unit
 async def test_check_expiring_tokens_creates_events_for_each_connection(
     mock_context: MagicMock,
+    mock_sse_publisher: MagicMock,
     sample_expiring_connections: list[ExpiringConnection],
 ) -> None:
     """Test that events are created for each expiring connection."""
     mock_repo = MagicMock()
     mock_repo.find_expiring_soon = AsyncMock(return_value=sample_expiring_connections)
     mock_repo.count_active = AsyncMock(return_value=10)
+
+    # Ensure sse_publisher is on the context
+    mock_context.state.sse_publisher = mock_sse_publisher
 
     created_events: list[ProviderTokenExpiringSoon] = []
 
@@ -113,12 +117,16 @@ async def test_check_expiring_tokens_creates_events_for_each_connection(
 @pytest.mark.unit
 async def test_check_expiring_tokens_logs_each_expiring_connection(
     mock_context: MagicMock,
+    mock_sse_publisher: MagicMock,
     sample_expiring_connections: list[ExpiringConnection],
 ) -> None:
     """Test that each expiring connection is logged."""
     mock_repo = MagicMock()
     mock_repo.find_expiring_soon = AsyncMock(return_value=sample_expiring_connections)
     mock_repo.count_active = AsyncMock(return_value=10)
+
+    # Ensure sse_publisher is on the context
+    mock_context.state.sse_publisher = mock_sse_publisher
 
     with (
         patch(
