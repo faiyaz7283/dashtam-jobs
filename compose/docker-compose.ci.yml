@@ -1,0 +1,34 @@
+name: dashtam-jobs-ci
+
+services:
+  # TaskIQ Worker (CI)
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-jobs-ci-worker
+    env_file:
+      - ../env/.env.ci
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-jobs-ci-network
+
+  # Redis (CI - ephemeral)
+  redis:
+    image: redis:8.4-alpine
+    container_name: dashtam-jobs-ci-redis
+    command: redis-server --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - dashtam-jobs-ci-network
+
+networks:
+  dashtam-jobs-ci-network:
+    driver: bridge
