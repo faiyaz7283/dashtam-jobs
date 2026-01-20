@@ -32,9 +32,6 @@ site
 *.md
 !README.md
 
-# Tests (for production builds)
-tests
-
 # Environment files (secrets)
 env/.env
 env/.env.*
