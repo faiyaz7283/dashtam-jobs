@@ -1,0 +1,110 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+jobs:
+  test-main:
+    name: Main Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare CI environment configuration
+        run: |
+          cp env/.env.ci.example env/.env.ci
+          echo "✅ CI environment configuration prepared"
+
+      - name: Start test environment
+        run: |
+          docker compose -f compose/docker-compose.ci.yml up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for Redis..."
+          docker compose -f compose/docker-compose.ci.yml exec -T redis redis-cli ping || sleep 2
+          echo "Services ready"
+
+      - name: Run main test suite
+        run: |
+          docker compose -f compose/docker-compose.ci.yml exec -T worker \
+            uv run pytest tests/ -v \
+            --cov=src \
+            --cov-report=xml:/app/coverage.xml \
+            --cov-report=term-missing \
+            --junitxml=/app/test-results.xml
+
+      - name: Copy coverage reports from container
+        if: always()
+        run: |
+          docker cp dashtam-jobs-ci-worker:/app/coverage.xml ./coverage-main.xml || true
+          docker cp dashtam-jobs-ci-worker:/app/test-results.xml ./test-results-main.xml || true
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage-main.xml
+          flags: main-tests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-main
+          path: |
+            test-results-main.xml
+            coverage-main.xml
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f compose/docker-compose.ci.yml down -v
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen --all-groups
+
+      - name: Run ruff linter
+        run: |
+          uv run ruff check src/ tests/
+
+      - name: Check code formatting
+        run: |
+          uv run ruff format --check src/ tests/
+
+      - name: Run markdown linter
+        run: |
+          docker run --rm \
+            -v $(pwd):/workspace:ro \
+            -w /workspace \
+            node:24-alpine \
+            sh -c "npx markdownlint-cli2 '**/*.md' || exit 1"

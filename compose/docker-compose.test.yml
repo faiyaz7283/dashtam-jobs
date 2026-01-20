@@ -1,0 +1,45 @@
+name: dashtam-jobs-test
+
+services:
+  # TaskIQ Worker (Test)
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-jobs-test-worker
+    env_file:
+      - ../env/.env.test
+    volumes:
+      - ..:/app:rw
+      - /app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-jobs-test-network
+
+  # Redis (Test - isolated instance)
+  redis:
+    image: redis:8.4-alpine
+    container_name: dashtam-jobs-test-redis
+    ports:
+      - "${JOBS_REDIS_PORT:-6382}:6379"
+    volumes:
+      - redis_jobs_test_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashtam-jobs-test-network
+
+networks:
+  dashtam-jobs-test-network:
+    driver: bridge
+
+volumes:
+  redis_jobs_test_data:
+    driver: local

@@ -1,0 +1,78 @@
+name: dashtam-jobs-dev
+
+services:
+  # TaskIQ Worker (Development)
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-jobs-dev-worker
+    env_file:
+      - ../env/.env.dev
+    volumes:
+      # Mount entire project for full dev experience
+      - ..:/app:rw
+      # Exclude .venv from mount to avoid macOS/Linux binary conflicts
+      - /app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - dashtam-jobs-dev-network
+      - dashtam-shared-network
+    restart: unless-stopped
+
+  # TaskIQ Scheduler (Development)
+  scheduler:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: dashtam-jobs-dev-scheduler
+    env_file:
+      - ../env/.env.dev
+    command: ["sh", "-c", "uv run taskiq scheduler dashtam_jobs.scheduler:scheduler"]
+    volumes:
+      - ..:/app:rw
+      - /app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    networks:
+      - dashtam-jobs-dev-network
+      - dashtam-shared-network
+    restart: unless-stopped
+
+  # Redis (Development - local instance for jobs)
+  redis:
+    image: redis:8.4-alpine
+    container_name: dashtam-jobs-dev-redis
+    env_file:
+      - ../env/.env.dev
+    ports:
+      - "${JOBS_REDIS_PORT:-6381}:6379"
+    volumes:
+      - redis_jobs_dev_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dashtam-jobs-dev-network
+
+networks:
+  dashtam-jobs-dev-network:
+    driver: bridge
+  # Shared network for cross-service communication (API can enqueue jobs)
+  dashtam-shared-network:
+    external: true
+    name: dashtam-shared-network
+
+volumes:
+  redis_jobs_dev_data:
+    driver: local
