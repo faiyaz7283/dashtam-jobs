@@ -134,15 +134,19 @@ dashtam-jobs/
 │   │   └── logging.py          # Structured logging configuration
 │   ├── events/                 # Domain events emitted by jobs
 │   │   ├── __init__.py
-│   │   └── provider.py         # Provider-related events
+│   │   ├── provider.py         # Provider-related events
+│   │   └── session.py          # Session-related events
 │   ├── tasks/                  # Job definitions by domain
 │   │   ├── __init__.py         # Re-exports all tasks
-│   │   └── tokens.py           # Token-related jobs
+│   │   ├── tokens.py           # Token-related jobs
+│   │   └── sessions.py         # Session expiry checks
 │   ├── infrastructure/         # External integrations
 │   │   ├── __init__.py
 │   │   ├── database.py         # Database class with session management
+│   │   ├── sse_publisher.py    # Publish SSE events to API clients
 │   │   └── repositories/       # Thin repository implementations
-│   │       └── provider_connection.py
+│   │       ├── provider_connection.py
+│   │       └── session.py      # Session queries
 │   └── middlewares/            # TaskIQ middlewares
 │       ├── __init__.py
 │       └── logging.py          # Job execution logging
@@ -209,10 +213,10 @@ dashtam-jobs/
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │                    dashtam-jobs Worker(s)                     │ │
 │  │                                                               │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │ │
-│  │  │   Token     │  │    Sync     │  │Notification │            │ │
-│  │  │   Tasks     │  │    Tasks    │  │   Tasks     │            │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘            │ │
+│  │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │ │
+│  │  │  │   Token     │  │   Session   │  │Notification │         │ │
+│  │  │  │   Tasks     │  │    Tasks    │  │   Tasks     │         │ │
+│  │  │  └─────────────┘  └─────────────┘  └─────────────┘         │ │
 │  │                                                               │ │
 │  └───────────────────────────────────────────────────────────────┘ │
 │                                                                    │
@@ -280,7 +284,7 @@ async def check_expiring_tokens(
 ```python
 def test_all_expected_tasks_registered():
     """Verify all expected jobs are registered with broker."""
-    expected = {"check_expiring_tokens", "sync_accounts", "send_notification"}
+    expected = {"check_expiring_tokens", "check_expiring_sessions", "sync_accounts", "send_notification"}
     registered = {name for name in broker.tasks.keys()}
     assert expected.issubset(registered)
 ```
@@ -349,6 +353,10 @@ class Settings(BaseSettings):
     token_expiry_threshold_hours: int = 24
     token_check_cron: str = "*/15 * * * *"
     
+    # Session expiry check configuration
+    session_expiry_threshold_minutes: int = 15
+    session_check_cron: str = "*/5 * * * *"
+    
     model_config = SettingsConfigDict(
         env_file="env/.env.dev",
         env_file_encoding="utf-8",
@@ -384,6 +392,8 @@ WORKER_CONCURRENCY=10
 LOG_LEVEL=DEBUG
 TOKEN_EXPIRY_THRESHOLD_HOURS=24
 TOKEN_CHECK_CRON=*/15 * * * *
+SESSION_EXPIRY_THRESHOLD_MINUTES=15
+SESSION_CHECK_CRON=*/5 * * * *
 ```
 
 **Environment-specific files**:

@@ -74,8 +74,9 @@ Jobs should only publish events that make sense as background notifications:
 | Event Type | Category | Description |
 | ------------ | ---------- | ------------- |
 | `provider.token.expiring` | provider | Token expires within threshold |
+| `security.session.expiring` | security | Session expires within threshold |
 
-**Note**: Other provider events (`provider.token.refreshed`, `provider.token.failed`, `provider.disconnected`) are triggered by user actions in the API, not background jobs.
+**Note**: Other provider events (`provider.token.refreshed`, `provider.token.failed`, `provider.disconnected`) and security events (`security.session.*`, `security.password.*`, `security.login.failed`) are triggered by user actions in the API, not background jobs.
 
 ---
 

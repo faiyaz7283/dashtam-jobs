@@ -13,6 +13,7 @@ from taskiq import InMemoryBroker
 from dashtam_jobs.infrastructure.repositories.provider_connection import (
     ExpiringConnection,
 )
+from dashtam_jobs.infrastructure.repositories.session import ExpiringSession
 
 
 @pytest.fixture(autouse=True)
@@ -30,6 +31,8 @@ def mock_env_vars() -> Generator[None]:
         "WORKER_CONCURRENCY": "5",
         "TOKEN_EXPIRY_THRESHOLD_HOURS": "24",
         "TOKEN_CHECK_CRON": "*/15 * * * *",
+        "SESSION_EXPIRY_THRESHOLD_MINUTES": "15",
+        "SESSION_CHECK_CRON": "*/5 * * * *",
     }
     with patch.dict(os.environ, env_vars, clear=False):
         # Clear the settings cache so new env vars are picked up
@@ -161,5 +164,62 @@ def create_expiring_connection(
     )
 
 
-# Re-export helper for tests
-__all__: list[Any] = ["create_expiring_connection"]
+@pytest.fixture
+def sample_expiring_sessions() -> list[ExpiringSession]:
+    """Provide sample expiring sessions for testing.
+
+    Returns:
+        List of ExpiringSession DTOs for testing.
+    """
+    return [
+        ExpiringSession(
+            id=uuid4(),
+            user_id=uuid4(),
+            expires_at=datetime.now(UTC) + timedelta(minutes=10),
+        ),
+        ExpiringSession(
+            id=uuid4(),
+            user_id=uuid4(),
+            expires_at=datetime.now(UTC) + timedelta(minutes=5),
+        ),
+    ]
+
+
+@pytest.fixture
+def mock_session_repository(
+    sample_expiring_sessions: list[ExpiringSession],
+) -> MagicMock:
+    """Provide a mock SessionRepository.
+
+    Args:
+        sample_expiring_sessions: Sample sessions to return.
+
+    Returns:
+        MagicMock configured as SessionRepository.
+    """
+    repo = MagicMock()
+    repo.find_expiring_soon = AsyncMock(return_value=sample_expiring_sessions)
+    repo.count_active = AsyncMock(return_value=10)
+    return repo
+
+
+def create_expiring_session(
+    minutes_until_expiry: int = 10,
+) -> ExpiringSession:
+    """Helper to create ExpiringSession for tests.
+
+    Args:
+        minutes_until_expiry: Minutes until session expires.
+
+    Returns:
+        ExpiringSession DTO.
+    """
+    return ExpiringSession(
+        id=uuid4(),
+        user_id=uuid4(),
+        expires_at=datetime.now(UTC) + timedelta(minutes=minutes_until_expiry),
+    )
+
+
+# Re-export helpers for tests
+__all__: list[Any] = ["create_expiring_connection", "create_expiring_session"]

@@ -11,5 +11,6 @@ Reference:
 """
 
 from dashtam_jobs.events.provider import ProviderTokenExpiringSoon
+from dashtam_jobs.events.session import SessionExpiringSoon
 
-__all__ = ["ProviderTokenExpiringSoon"]
+__all__ = ["ProviderTokenExpiringSoon", "SessionExpiringSoon"]
