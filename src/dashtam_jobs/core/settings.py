@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     token_expiry_threshold_hours: int = 24
     token_check_cron: str = "*/15 * * * *"
 
+    # Session expiry check configuration
+    session_expiry_threshold_minutes: int = 15
+    session_check_cron: str = "*/5 * * * *"
+
     model_config = SettingsConfigDict(
         env_file="env/.env.dev",
         env_file_encoding="utf-8",
