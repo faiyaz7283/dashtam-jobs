@@ -1,0 +1,22 @@
+# =============================================================================
+# Release Phase 2 Caller Workflow
+# =============================================================================
+#
+# Purpose:
+#   Calls the centralized reusable workflow from the meta repo.
+#   Creates PR from development → main after release PR is merged.
+#
+# =============================================================================
+
+name: "Release Phase 2: Create PR to Main"
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - development
+
+jobs:
+  release-phase2:
+    uses: faiyaz7283/dashtam/.github/workflows/release-phase2-reusable.yml@main
+    secrets: inherit

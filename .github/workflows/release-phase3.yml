@@ -1,0 +1,25 @@
+# =============================================================================
+# Release Phase 3 Caller Workflow
+# =============================================================================
+#
+# Purpose:
+#   Calls the centralized reusable workflow from the meta repo.
+#   Tags release, creates GitHub Release, syncs main → development.
+#
+# IMPORTANT: Uses `push` event instead of `pull_request: closed`
+#   PRs created with GITHUB_TOKEN cannot trigger other workflows.
+#   Push events bypass this limitation.
+#
+# =============================================================================
+
+name: "Release Phase 3: Tag, Release, and Sync"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-phase3:
+    uses: faiyaz7283/dashtam/.github/workflows/release-phase3-reusable.yml@main
+    secrets: inherit
